@@ -1,5 +1,6 @@
 {
   "name": "mediapipe-facelandmarks",
+  "homepage":"https://tudasam.github.io/Mediapipe",
   "private": true,
   "version": "0.0.0",
   "type": "module",
