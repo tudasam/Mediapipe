@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import  { useState } from "react";
 import { FaceLandmarkerView } from "./FaceLandmarkerView";
 import { ThreeScene } from "./ThreeScene";
 import type { NormalizedLandmark } from "@mediapipe/tasks-vision";
