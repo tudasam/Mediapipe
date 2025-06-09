@@ -1,6 +1,6 @@
 {
   "name": "mediapipe-facelandmarks",
-  "homepage":"https://tudasam.github.io/Mediapipe",
+  "homepage": "https://tudasam.github.io/Mediapipe",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,12 +8,15 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy":"npm run build",
+    "deploy":"gh-pages -d dist"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.22-rc.20250304",
     "@react-three/drei": "^10.1.2",
     "@react-three/fiber": "^9.1.2",
+    "gh-pages": "^6.3.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "three": "^0.177.0"
