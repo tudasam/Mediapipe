@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { NormalizedLandmark } from "@mediapipe/tasks-vision";
+import { lerp } from "three/src/math/MathUtils.js";
 
 type Props = {
   facePoint: NormalizedLandmark | null;
@@ -30,7 +31,7 @@ export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
 
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     camera.position.set(0, 1.6, 5);
-    camera.lookAt(0, 1.6, 0);
+    //camera.lookAt(0, 1.6, 0);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -47,8 +48,12 @@ export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
       new THREE.BoxGeometry(1, 1, 1),
       new THREE.MeshBasicMaterial({ color: 0x00ff00 })
     );
-    cube.position.set(0, 1.6, 0);
+    cube.position.set(0, 0, 0);
     scene.add(cube);
+
+    var xs=0.0
+    var ys=0.0
+    var zs=0.0
 
     // Animate loop
     const animate = () => {
@@ -57,13 +62,22 @@ export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
       const fp = facePointRef.current;
       if (fp && cameraRef.current) {
         // Translate normalized point to world position
-        const x = (fp.x - 0.5) * 4;
-        const y = (0.5 - fp.y) * 3 + 1.6;
-        const z = fp.z * 50 + 3;
-        const target = new THREE.Vector3(x, y, z);
+        const x = -(fp.x - 0.5) * 4;
+        const y = (0.5 - fp.y) * 3;
+        const z = fp.z * 20 + 3;
+        xs = xs +(x-xs)/20
+        ys = ys +(y-ys)/20
+        zs = zs +(z-zs)/20
 
+        const target = new THREE.Vector3(x, y, z);
+        
+        
+        camera.setViewOffset(width,height,-0.7*width*xs,0.7*height*ys,width,height)
+        camera.setFocalLength(5*zs)
+        
         cameraRef.current.position.lerp(target, 0.1);
-        cameraRef.current.lookAt(0, 1.6, 0);
+        camera.updateMatrix
+        //cameraRef.current.lookAt(0, 1.6, 0);
       }
 
       renderer.render(scene, camera);
