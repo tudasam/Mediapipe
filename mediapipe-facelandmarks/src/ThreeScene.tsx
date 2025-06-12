@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { NormalizedLandmark } from "@mediapipe/tasks-vision";
-import { lerp } from "three/src/math/MathUtils.js";
+import { GUI } from 'dat.gui'
+
 
 type Props = {
   facePoint: NormalizedLandmark | null;
@@ -55,6 +56,20 @@ export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
     var ys=0.0
     var zs=0.0
 
+    
+    
+    const settings = {
+      offX: 0.0,
+      offY: 0.0,
+      offZ: 0.0
+    };
+    const gui = new GUI();
+    const Offset = gui.addFolder('Offset')
+    Offset.add(settings,'offX',-2,2).step(0.01);
+    Offset.add(settings,'offY',-2,2).step(0.01);
+    Offset.add(settings,'offZ',1,10).step(0.01);
+
+
     // Animate loop
     const animate = () => {
       requestAnimationFrame(animate);
@@ -65,23 +80,24 @@ export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
         const x = -(fp.x - 0.5) * 4;
         const y = (0.5 - fp.y) * 3;
         const z = fp.z * 20 + 3;
-        xs = xs +(x-xs)/20
-        ys = ys +(y-ys)/20
-        zs = zs +(z-zs)/20
+        xs = xs +(x-xs)/4
+        ys = ys +(y-ys)/4
+        zs = zs +(z-zs)/4
 
-        const target = new THREE.Vector3(x, y, z);
+       // const target = new THREE.Vector3(x, y, z);
         
         
-        camera.setViewOffset(width,height,-0.7*width*xs,0.7*height*ys,width,height)
+        camera.setViewOffset(width,height,settings.offX*width*xs,settings.offY*height*ys,width,height)
         camera.setFocalLength(5*zs)
+        camera.position.set(xs,ys,zs)
         
-        cameraRef.current.position.lerp(target, 0.1);
+        //cameraRef.current.position.lerp(target, 0.1);
         camera.updateMatrix
         //cameraRef.current.lookAt(0, 1.6, 0);
       }
 
       renderer.render(scene, camera);
-    };
+    };    
 
     animate();
 
@@ -104,5 +120,5 @@ export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
     };
   }, []);
 
-  return <div ref={mountRef} style={{ width: "100%", height: "500px" }} />;
+  return <div ref={mountRef} style={{position:"fixed",top:0,left:0, width: "100%", height: "100%" }} />;
 };

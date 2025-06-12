@@ -130,13 +130,13 @@ export const FaceLandmarkerView: React.FC<Props> = ({ onUpdate }) => {
   }, [onUpdate]);
 
   return (
-    <div style={{ position: "relative", display: "inline-block" }}>
+    <div style={{ position: "absolute", top:0,left:0, zIndex:2}}>
       <video
         ref={videoRef}
         muted
         autoPlay
         playsInline
-        style={{ width: "480px", height: "360px", borderRadius: "0px" }}
+        style={{ width: "480px", height: "360px", borderRadius: "0px"  }}
       />
       <canvas
         ref={canvasRef}
@@ -147,6 +147,7 @@ export const FaceLandmarkerView: React.FC<Props> = ({ onUpdate }) => {
           width: "480px",
           height: "360px",
           pointerEvents: "none",
+          
         }}
       />
     </div>
