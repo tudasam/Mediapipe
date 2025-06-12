@@ -83,17 +83,10 @@ export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
         xs = xs +(x-xs)/4
         ys = ys +(y-ys)/4
         zs = zs +(z-zs)/4
-
-       // const target = new THREE.Vector3(x, y, z);
-        
-        
         camera.setViewOffset(width,height,settings.offX*width*xs,settings.offY*height*ys,width,height)
         camera.setFocalLength(5*zs)
         camera.position.set(xs,ys,zs)
-        
-        //cameraRef.current.position.lerp(target, 0.1);
         camera.updateMatrix
-        //cameraRef.current.lookAt(0, 1.6, 0);
       }
 
       renderer.render(scene, camera);
