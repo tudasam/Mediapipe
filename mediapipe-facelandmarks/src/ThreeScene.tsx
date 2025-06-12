@@ -59,8 +59,8 @@ export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
     
     
     const settings = {
-      offX: 0.0,
-      offY: 0.0,
+      offX: -0.14,
+      offY: 0.25,
       offZ: 0.0
     };
     const gui = new GUI();
