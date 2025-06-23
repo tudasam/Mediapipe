@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import type { NormalizedLandmark } from "@mediapipe/tasks-vision";
-import { GUI } from 'dat.gui'
-
+//import { GUI } from 'dat.gui'
+import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
 
 type Props = {
   facePoint: NormalizedLandmark | null;
@@ -14,6 +15,7 @@ export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const facePointRef = useRef<NormalizedLandmark | null>(null);
+
 
   // Keep facePoint ref up-to-date
   useEffect(() => {
@@ -37,37 +39,54 @@ export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
+    console.log(width)
+    console.log(height)
     mountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
     // Add floor grid
-    const gridHelper = new THREE.GridHelper(10, 20);
-    scene.add(gridHelper);
-
-    // Add a visible cube
-    const cube = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-    );
-    cube.position.set(0, 0, 0);
-    scene.add(cube);
-
-    var xs=0.0
-    var ys=0.0
-    var zs=0.0
-
-    
-    
-    const settings = {
+    //const gridHelper = new THREE.GridHelper(10, 20);
+    //scene.add(gridHelper);
+        const settings = {
       offX: -0.14,
       offY: 0.25,
-      offZ: 0.0
+      offZ: 5.0,
+      effectAmount: 0.5,
+      x:0.0,
+      y:0.0,
+      z:0.0
     };
     const gui = new GUI();
-    const Offset = gui.addFolder('Offset')
+    const Offset = gui.addFolder('Settings')
     Offset.add(settings,'offX',-2,2).step(0.01);
     Offset.add(settings,'offY',-2,2).step(0.01);
     Offset.add(settings,'offZ',1,10).step(0.01);
+    Offset.add(settings,'effectAmount',0,1.5).step(0.01);
+
+
+    const loader = new GLTFLoader();
+    loader.load(
+      '/Mediapipe/Models/Scene1.glb',
+      (gltf) => {
+        const model = gltf.scene;
+        model.position.set(0, 0, 0);
+        model.scale.set(0.3, 0.3, 0.3); // Adjust scale as needed
+        scene.add(model);
+        console.log('Model loaded:', model);
+        Offset.add(model.position,'x',-5,5).step(0.01).name('Model X');
+        Offset.add(model.position,'y',-5,5).step(0.01).name('Model Y');
+        Offset.add(model.position,'z',-5,5).step(0.01).name('Model Z');
+      },
+      undefined,
+      (error) => {
+        console.error('An error happened while loading the GLB model:', error);
+      }
+    );
+ 
+    var xs=0.0
+    var ys=0.0
+    var zs=0.0
+    
 
 
     // Animate loop
@@ -77,14 +96,14 @@ export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
       const fp = facePointRef.current;
       if (fp && cameraRef.current) {
         // Translate normalized point to world position
-        const x = -(fp.x - 0.5) * 4;
-        const y = (0.5 - fp.y) * 3;
-        const z = fp.z * 20 + 3;
+        const x = -settings.effectAmount*(fp.x - 0.5) * 4;
+        const y = settings.effectAmount*(0.5 - fp.y) * 3;
+        const z = settings.effectAmount*fp.z * 40 + 3;
         xs = xs +(x-xs)/4
         ys = ys +(y-ys)/4
         zs = zs +(z-zs)/4
-        camera.setViewOffset(width,height,settings.offX*width*xs,settings.offY*height*ys,width,height)
-        camera.setFocalLength(5*zs)
+        camera.setViewOffset(width,height,settings.effectAmount*settings.offX*1912*xs,settings.effectAmount*settings.offY*934*ys,width,height)
+        camera.setFocalLength(settings.offZ*zs)
         camera.position.set(xs,ys,zs)
         camera.updateMatrix
       }

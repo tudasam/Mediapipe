@@ -136,7 +136,7 @@ export const FaceLandmarkerView: React.FC<Props> = ({ onUpdate }) => {
         muted
         autoPlay
         playsInline
-        style={{ width: "480px", height: "360px", borderRadius: "0px"  }}
+        style={{width:100,borderRadius: "20px"}}
       />
       <canvas
         ref={canvasRef}
@@ -144,8 +144,7 @@ export const FaceLandmarkerView: React.FC<Props> = ({ onUpdate }) => {
           position: "absolute",
           top: 0,
           left: 0,
-          width: "480px",
-          height: "360px",
+          width:100,
           pointerEvents: "none",
           
         }}
