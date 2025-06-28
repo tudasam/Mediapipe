@@ -7,11 +7,13 @@ import {
 
 type Props = {
   onUpdate: (point: NormalizedLandmark | null) => void;
+  scale?: number; // scaling factor (0 < scale <= 1)
 };
 
-export const FaceLandmarkerView: React.FC<Props> = ({ onUpdate }) => {
+export const FaceLandmarkerView: React.FC<Props> = ({ onUpdate, scale = 1 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement>(document.createElement("canvas"));
   const faceLandmarkerRef = useRef<FaceLandmarker | null>(null);
   const animationFrameIdRef = useRef<number | null>(null);
 
@@ -25,7 +27,6 @@ export const FaceLandmarkerView: React.FC<Props> = ({ onUpdate }) => {
       height: number
     ) => {
       ctx.clearRect(0, 0, width, height);
-
       ctx.fillStyle = "red";
       for (const landmark of landmarks) {
         const x = landmark.x * width;
@@ -60,7 +61,6 @@ export const FaceLandmarkerView: React.FC<Props> = ({ onUpdate }) => {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-
         videoRef.current.onloadedmetadata = () => {
           videoRef.current
             ?.play()
@@ -71,50 +71,54 @@ export const FaceLandmarkerView: React.FC<Props> = ({ onUpdate }) => {
     };
 
     const detectLoop = () => {
-      if (
-        !videoRef.current ||
-        !faceLandmarkerRef.current ||
-        videoRef.current.videoWidth === 0 ||
-        videoRef.current.videoHeight === 0
-      ) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const detector = faceLandmarkerRef.current;
+      const offscreen = offscreenCanvasRef.current;
+
+      if (!video || !detector || video.videoWidth === 0 || video.videoHeight === 0) {
         animationFrameIdRef.current = requestAnimationFrame(detectLoop);
         return;
       }
 
-      const results = faceLandmarkerRef.current.detectForVideo(
-        videoRef.current,
-        performance.now()
-      );
+      // Scale video frame to smaller size for processing
+      const scaledWidth = video.videoWidth * scale;
+      const scaledHeight = video.videoHeight * scale;
 
-      if (results.faceLandmarks?.length && canvasRef.current) {
+      offscreen.width = scaledWidth;
+      offscreen.height = scaledHeight;
+
+      const offCtx = offscreen.getContext("2d");
+      offCtx?.drawImage(video, 0, 0, scaledWidth, scaledHeight);
+
+      const results = detector.detectForVideo(offscreen, performance.now());
+
+      if (results.faceLandmarks?.length && canvas) {
         const point = results.faceLandmarks[0][168];
         onUpdate(point);
 
-        const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
         if (ctx) {
-          // Resize canvas if video size changed
-          if (
-            canvas.width !== videoRef.current.videoWidth ||
-            canvas.height !== videoRef.current.videoHeight
-          ) {
-            canvas.width = videoRef.current.videoWidth;
-            canvas.height = videoRef.current.videoHeight;
+          // Resize canvas to video output
+          if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
           }
-          drawLandmarks(results.faceLandmarks[0], ctx, canvas.width, canvas.height);
+
+          // Upscale and draw
+          const upscaledLandmarks = results.faceLandmarks[0].map((lm) => ({
+            x: lm.x,
+            y: lm.y,
+            z: lm.z,
+            visibility: lm.visibility,
+          }));
+
+          drawLandmarks(upscaledLandmarks, ctx, canvas.width, canvas.height);
         }
       } else {
         onUpdate(null);
-        // Clear canvas if no face detected
-        if (canvasRef.current) {
-          const ctx = canvasRef.current.getContext("2d");
-          ctx?.clearRect(
-            0,
-            0,
-            canvasRef.current.width,
-            canvasRef.current.height
-          );
-        }
+        const ctx = canvas?.getContext("2d");
+        ctx?.clearRect(0, 0, canvas!.width, canvas!.height);
       }
 
       animationFrameIdRef.current = requestAnimationFrame(detectLoop);
@@ -127,16 +131,16 @@ export const FaceLandmarkerView: React.FC<Props> = ({ onUpdate }) => {
       if (animationFrameIdRef.current) cancelAnimationFrame(animationFrameIdRef.current);
       faceLandmarkerRef.current?.close();
     };
-  }, [onUpdate]);
+  }, [onUpdate, scale]);
 
   return (
-    <div style={{ position: "absolute", top:0,left:0, zIndex:2}}>
+    <div style={{ position: "absolute", top: 0, left: 0, zIndex: 2 }}>
       <video
         ref={videoRef}
         muted
         autoPlay
         playsInline
-        style={{width:100,borderRadius: "20px"}}
+        style={{ width: 100, borderRadius: "20px" }}
       />
       <canvas
         ref={canvasRef}
@@ -144,13 +148,10 @@ export const FaceLandmarkerView: React.FC<Props> = ({ onUpdate }) => {
           position: "absolute",
           top: 0,
           left: 0,
-          width:100,
+          width: 100,
           pointerEvents: "none",
-          
         }}
       />
     </div>
   );
 };
-
-

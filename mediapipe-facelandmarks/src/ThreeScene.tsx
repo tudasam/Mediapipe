@@ -1,117 +1,166 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef} from "react";
 import * as THREE from "three";
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js'
 import type { NormalizedLandmark } from "@mediapipe/tasks-vision";
-//import { GUI } from 'dat.gui'
+import Stats from 'three/addons/libs/stats.module.js'
 import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
 
 type Props = {
-  facePoint: NormalizedLandmark | null;
+  facePoint: React.RefObject<NormalizedLandmark | null>;
 };
 
 export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
+  
   const mountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
-  const facePointRef = useRef<NormalizedLandmark | null>(null);
-
-
-  // Keep facePoint ref up-to-date
-  useEffect(() => {
-    facePointRef.current = facePoint;
-  }, [facePoint]);
 
   useEffect(() => {
     if (!mountRef.current) return;
 
+    const hdr = 'https://sbcode.net/img/venice_sunset_1k.hdr'
+    new RGBELoader().load(hdr, (texture) => {
+      texture.mapping = THREE.EquirectangularReflectionMapping
+      scene.environment = texture
+      scene.background = texture
+    })
+
     const width = mountRef.current.clientWidth;
     const height = mountRef.current.clientHeight;
-
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202020);
+    scene.backgroundBlurriness = 0.3;
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     camera.position.set(0, 1.6, 5);
-    //camera.lookAt(0, 1.6, 0);
+    
     cameraRef.current = camera;
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(0, 1, 1).normalize();
+    scene.add(directionalLight);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
+    
     console.log(width)
     console.log(height)
-    mountRef.current.appendChild(renderer.domElement);
+    
     rendererRef.current = renderer;
 
-    // Add floor grid
-    //const gridHelper = new THREE.GridHelper(10, 20);
-    //scene.add(gridHelper);
-        const settings = {
+    const settings = {
+      resolution: 0.5,
       offX: -0.14,
       offY: 0.25,
       offZ: 5.0,
-      effectAmount: 0.5,
+      effectAmountX: 0.5,
+      effectAmountY: 0.5,
+      effectAmountZ: 0.5,
       x:0.0,
       y:0.0,
       z:0.0
     };
+    
     const gui = new GUI();
     const Offset = gui.addFolder('Settings')
+    Offset.add(settings, 'resolution', 0.1, 1).step(0.01).name('Resolution');
     Offset.add(settings,'offX',-2,2).step(0.01);
     Offset.add(settings,'offY',-2,2).step(0.01);
     Offset.add(settings,'offZ',1,10).step(0.01);
-    Offset.add(settings,'effectAmount',0,1.5).step(0.01);
+    Offset.add(settings,'effectAmountX',0,1.5).step(0.01);
+    Offset.add(settings,'effectAmountY',0,1.5).step(0.01);
+    Offset.add(settings,'effectAmountZ',0,1.5).step(0.01);
+    Offset.add(settings,'x',-5,5).step(0.01).name('Position X');
+    Offset.add(settings,'y',-5,5).step(0.01).name('Position Y');
+    Offset.add(settings,'z',-5,5).step(0.01).name('Position Z');
 
 
+    let currentModel: THREE.Object3D | null = null;
+    const modelOptions = {
+      current: 'Scene1.glb',
+      files: ['Scene1.glb', 'Scene2.glb', 'Robot.glb'] // Place these in public/Models/
+    };
+
+
+    let mixer: THREE.AnimationMixer | null = null;
     const loader = new GLTFLoader();
+  function loadModel(fileName: string) {
+    // Remove old model
+    if (currentModel) {
+      scene.remove(currentModel);
+      mixer = null;
+    }
     loader.load(
-      '/Mediapipe/Models/Scene1.glb',
-      (gltf) => {
-        const model = gltf.scene;
-        model.position.set(0, 0, 0);
-        model.scale.set(0.3, 0.3, 0.3); // Adjust scale as needed
-        scene.add(model);
-        console.log('Model loaded:', model);
-        Offset.add(model.position,'x',-5,5).step(0.01).name('Model X');
-        Offset.add(model.position,'y',-5,5).step(0.01).name('Model Y');
-        Offset.add(model.position,'z',-5,5).step(0.01).name('Model Z');
+        `/Mediapipe/Models/${fileName}`,
+        (gltf) => {
+        currentModel = gltf.scene;
+        currentModel.position.set(0, 0, 0);
+        currentModel.scale.set(0.5, 0.5, 0.5); // Adjust scale as needed
+        scene.add(currentModel);
+        console.log('Model loaded:', currentModel);
+        if (gltf.animations && gltf.animations.length > 0) {
+          mixer = new THREE.AnimationMixer(currentModel); // mixer affects whole hierarchy
+
+          // Play all animations
+          gltf.animations.forEach((clip) => {
+            const action = mixer!.clipAction(clip);
+            action.play();
+          });
+
+          console.log('🎬 Playing animations:', gltf.animations.map(a => a.name));
+        } else {
+          console.warn('⚠️ No animations found in GLB file.');
+        }
       },
       undefined,
       (error) => {
         console.error('An error happened while loading the GLB model:', error);
       }
     );
+  }
+  gui.add(modelOptions, 'current', modelOptions.files).name('GLB File').onChange((value) => {
+  if (typeof value === "string" && value.trim() !== "") {
+    loadModel(value);
+  }
+});
+  loadModel(modelOptions.current);
  
     var xs=0.0
     var ys=0.0
     var zs=0.0
-    
-
-
+    const stats = new Stats()
+  
+    const clock = new THREE.Clock()
     // Animate loop
     const animate = () => {
       requestAnimationFrame(animate);
-
-      const fp = facePointRef.current;
+      currentModel?.position.set(settings.x, settings.y, settings.z);
+      const delta = clock.getDelta();
+      if (mixer) mixer.update(delta);
+      const fp = facePoint.current;
       if (fp && cameraRef.current) {
         // Translate normalized point to world position
-        const x = -settings.effectAmount*(fp.x - 0.5) * 4;
-        const y = settings.effectAmount*(0.5 - fp.y) * 3;
-        const z = settings.effectAmount*fp.z * 40 + 3;
-        xs = xs +(x-xs)/4
-        ys = ys +(y-ys)/4
-        zs = zs +(z-zs)/4
-        camera.setViewOffset(width,height,settings.effectAmount*settings.offX*1912*xs,settings.effectAmount*settings.offY*934*ys,width,height)
+        const x = -settings.effectAmountX*(fp.x - 0.5) * 4;
+        const y = settings.effectAmountY*(0.5 - fp.y) * 3;
+        const z = settings.effectAmountZ*fp.z * 40 + 3;
+        xs = xs +(x-xs)/19
+        ys = ys +(y-ys)/10
+        zs = zs +(z-zs)/10
+        camera.setViewOffset(width,height,settings.effectAmountX*settings.offX*1912*xs,settings.effectAmountY*settings.offY*934*ys,width,height)
         camera.setFocalLength(settings.offZ*zs)
         camera.position.set(xs,ys,zs)
-        camera.updateMatrix
+        camera.updateMatrix()
       }
-
+      renderer.setPixelRatio(settings.resolution);
       renderer.render(scene, camera);
+      stats.update();
     };    
 
     animate();
+    document.body.appendChild(stats.dom)
+    mountRef.current.appendChild(renderer.domElement);
 
     const onResize = () => {
       if (!renderer || !camera) return;
