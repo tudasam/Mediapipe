@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js"></script>
+</head>
+<body>
+<script>
+  let faceLandmarker = null;
+
+  async function init() {
+    const vision = await window.FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+    );
+
+    faceLandmarker = await window.FaceLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        delegate: "GPU",
+      },
+      runningMode: "VIDEO",
+      numFaces: 1,
+    });
+
+    window.parent.postMessage({ type: "ready" }, "*");
+  }
+
+  window.onmessage = async (e) => {
+    const { type, bitmap, timestamp } = e.data;
+    if (type === "frame" && faceLandmarker && bitmap) {
+      const results = faceLandmarker.detectForVideo(bitmap, timestamp);
+      bitmap.close();
+      window.parent.postMessage({ type: "result", landmarks: results.faceLandmarks?.[0] || null }, "*");
+    }
+  };
+
+  init();
+</script>
+</body>
+</html>
