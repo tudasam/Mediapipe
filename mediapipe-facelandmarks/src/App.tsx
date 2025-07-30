@@ -1,4 +1,4 @@
-import  { useRef } from "react";
+import { useRef } from "react";
 import { FaceLandmarkerView } from "./FaceLandmarkerView";
 import { ThreeScene } from "./ThreeScene";
 import type { NormalizedLandmark } from "@mediapipe/tasks-vision";
@@ -14,19 +14,32 @@ function getScaleFromUrl(): number {
 }
 
 function App() {
-  const facePointRef = useRef<NormalizedLandmark | null>(null);
+  const facePointL = useRef<NormalizedLandmark | null>(null);
+  const facePointR = useRef<NormalizedLandmark | null>(null);
+
   const scale = getScaleFromUrl();
   console.log("Scale from URL:", scale);
+
   return (
     <>
-      <FaceLandmarkerView scale={scale} onUpdate={(point) => {
-        facePointRef.current = point;
-      }} />
-      <ThreeScene facePoint={facePointRef} />
+      <FaceLandmarkerView
+        scale={scale}
+        onUpdate={(points) => {
+          if (points) {
+            facePointL.current = points.leftEye;
+            facePointR.current = points.rightEye;
+          } else {
+            facePointL.current = null;
+            facePointR.current = null;
+          }
+        }}
+      />
+      <ThreeScene leftEyeRef={facePointL} rightEyeRef={facePointR} />
     </>
   );
 }
 
 export default App;
+
 
 

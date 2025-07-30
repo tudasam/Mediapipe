@@ -6,7 +6,10 @@ import {
 } from "@mediapipe/tasks-vision";
 
 type Props = {
-  onUpdate: (point: NormalizedLandmark | null) => void;
+  onUpdate: (points: {
+    leftEye: NormalizedLandmark,
+    rightEye: NormalizedLandmark
+  } | null) => void;
   scale?: number;
 };
 
@@ -74,7 +77,10 @@ export const FaceLandmarkerView: React.FC<Props> = ({ onUpdate, scale = 1 }) => 
 
       const landmarks = results.faceLandmarks?.[0];
       if (landmarks) {
-        onUpdate(landmarks[168]);
+        const leftEye = landmarks[473];  // Iris center (left eye)
+        const rightEye = landmarks[468]; // Iris center (right eye)
+
+        onUpdate({ leftEye, rightEye });
 
         if (!ctxRef.current) {
           ctxRef.current = canvas.getContext("2d");

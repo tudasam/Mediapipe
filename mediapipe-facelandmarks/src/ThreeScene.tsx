@@ -7,10 +7,11 @@ import Stats from 'three/addons/libs/stats.module.js'
 import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
 
 type Props = {
-  facePoint: React.RefObject<NormalizedLandmark | null>;
+  leftEyeRef: React.RefObject<NormalizedLandmark | null>;
+  rightEyeRef: React.RefObject<NormalizedLandmark | null>;
 };
 
-export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
+export const ThreeScene: React.FC<Props> = ({ leftEyeRef,rightEyeRef }) => {
 
   const mountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -136,11 +137,14 @@ export const ThreeScene: React.FC<Props> = ({ facePoint }) => {
       currentModel?.position.set(settings.x, settings.y, settings.z);
       const delta = clock.getDelta();
       if (mixer) mixer.update(delta);
-      const fp = facePoint.current;
-      if (fp && cameraRef.current) {
-        const x = -settings.effectAmountX * (fp.x - 0.5) * 4;
-        const y = settings.effectAmountY * (0.5 - fp.y) * 3;
-        const z = settings.effectAmountZ * fp.z * 40 + 3;
+      const fpl = leftEyeRef.current;
+      const fpr = rightEyeRef.current;
+      if (fpl && fpr && cameraRef.current) {
+        const dist = Math.sqrt(Math.pow(fpl.x - fpr.x, 2) +  Math.pow(fpl.y - fpr.y, 2) + Math.pow(fpl.z - fpr.z, 2));
+        const x = -settings.effectAmountX * ((fpl.x+fpr.x)*0.5 - 0.5) * 4;
+        const y = settings.effectAmountY * (0.5 - (fpl.y+fpr.y)*0.5) * 3;
+        const z = settings.effectAmountZ /dist;
+ 
         xs = xs + (x - xs) / 19
         ys = ys + (y - ys) / 10
         zs = zs + (z - zs) / 10
