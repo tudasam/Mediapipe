@@ -53,9 +53,9 @@ export const ThreeScene: React.FC<Props> = ({ leftEyeRef,rightEyeRef }) => {
 
     const settings = {
       resolution: 0.5,
-      offX: -0.14,
-      offY: 0.25,
-      offZ: 5.0,
+      offX: -0.21,
+      offY: 0.53,
+      offZ: 5.35,
       effectAmountX: 0.5,
       effectAmountY: 0.5,
       effectAmountZ: 0.5,
@@ -80,7 +80,7 @@ export const ThreeScene: React.FC<Props> = ({ leftEyeRef,rightEyeRef }) => {
 
     let currentModel: THREE.Object3D | null = null;
     const modelOptions = {
-      current: 'Scene1.glb',
+      current: 'CocaCola.glb',
       files: ['Scene1.glb', 'Scene2.glb', 'CocaCola.glb'] // Place these in public/Models/
     };
 
@@ -88,7 +88,6 @@ export const ThreeScene: React.FC<Props> = ({ leftEyeRef,rightEyeRef }) => {
     let mixer: THREE.AnimationMixer | null = null;
     const loader = new GLTFLoader();
     function loadModel(fileName: string) {
-      // Remove old model
       if (currentModel) {
         scene.remove(currentModel);
         mixer = null;
